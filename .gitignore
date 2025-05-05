@@ -1,0 +1,5 @@
+/.go/*
+/build/*
+/go.work
+/src/metadata/metadata.json
+/tmp/
