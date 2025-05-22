@@ -1,0 +1,7 @@
+go 1.19
+
+use .
+
+// replace github.com/illikainen/go-cryptor => ../go-cryptor
+// replace github.com/illikainen/go-netutils => ../go-netutils
+// replace github.com/illikainen/go-utils => ../go-utils
