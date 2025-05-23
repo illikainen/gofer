@@ -1,0 +1,40 @@
+name: Pipeline
+
+on:
+  push:
+    branches:
+      - master
+    pull_request:
+      - master
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:12
+    steps:
+      - name: Prepare packages
+        run: |
+          set -ex
+          apt-get update
+          apt-get -y dist-upgrade
+          apt-get -y install ca-certificates git golang make
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build
+        run: |
+          set -ex
+          chown -R root:root .
+          make tidy
+          make
+          make release
+          find build ! -type d ! -name SHA256SUMS -exec sha256sum '{}' \; >build/SHA256SUMS
+          cat build/SHA256SUMS
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./build
+      - name: Lint
+        run: make check
