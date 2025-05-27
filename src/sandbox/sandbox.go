@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/illikainen/go-netutils/src/sshx"
@@ -83,8 +84,18 @@ func Exec(opts *SandboxOptions) error {
 		rw = append(rw, sshRW...)
 	}
 
-	_, err := sandbox.Exec(sandbox.Options{
-		Command: os.Args,
+	bin, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	bin, err = filepath.Abs(bin)
+	if err != nil {
+		return err
+	}
+
+	_, err = sandbox.Exec(sandbox.Options{
+		Command: append([]string{bin}, os.Args[1:]...),
 		RO:      ro,
 		RW:      rw,
 		Proc:    true,
