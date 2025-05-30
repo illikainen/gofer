@@ -7,7 +7,6 @@ import (
 
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
-	"github.com/illikainen/gofer/src/sandbox"
 	"github.com/illikainen/gofer/src/tools"
 
 	"github.com/illikainen/go-cryptor/src/blob"
@@ -62,8 +61,8 @@ func preRun(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	ro := []string{}
-	rw := []string{"."}
+	ro := []string{"."}
+	rw := []string{options.bindir.String()}
 
 	exists, err := iofs.Exists("go.work")
 	if err != nil {
@@ -83,12 +82,17 @@ func preRun(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	return sandbox.Exec(&sandbox.SandboxOptions{
-		Subcommand: cmd.CalledAs(),
-		Flags:      cmd.Flags(),
-		RO:         ro,
-		RW:         rw,
-	})
+	err = options.Sandbox.AddReadOnlyPath(ro...)
+	if err != nil {
+		return err
+	}
+
+	err = options.Sandbox.AddReadWritePath(rw...)
+	if err != nil {
+		return err
+	}
+
+	return options.Sandbox.Confine()
 }
 
 func run(_ *cobra.Command, args []string) (err error) {

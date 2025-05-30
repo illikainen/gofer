@@ -5,11 +5,9 @@ import (
 
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
-	"github.com/illikainen/gofer/src/sandbox"
 
 	"github.com/illikainen/go-cryptor/src/blob"
 	"github.com/illikainen/go-utils/src/flag"
-	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -38,23 +36,15 @@ func init() {
 
 	options.input.State = flag.MustExist
 	flags.VarP(&options.input, "input", "i", "Directory with signed modules and metadata")
-
-	flags.VarP(&options.goSums, "go-sums", "", "Go.sum files to parse")
-	lo.Must0(flags.MarkHidden("go-sums"))
 }
 
-func preRun(cmd *cobra.Command, args []string) (err error) {
-	for _, arg := range args {
-		err := options.goSums.Set(arg)
-		if err != nil {
-			return err
-		}
+func preRun(_ *cobra.Command, args []string) error {
+	err := options.Sandbox.AddReadOnlyPath(args...)
+	if err != nil {
+		return err
 	}
 
-	return sandbox.Exec(&sandbox.SandboxOptions{
-		Subcommand: cmd.CalledAs(),
-		Flags:      cmd.Flags(),
-	})
+	return options.Sandbox.Confine()
 }
 
 func run(cmd *cobra.Command, args []string) (err error) {

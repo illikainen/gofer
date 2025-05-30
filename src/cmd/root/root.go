@@ -11,6 +11,7 @@ import (
 
 	"github.com/illikainen/go-utils/src/flag"
 	"github.com/illikainen/go-utils/src/logging"
+	"github.com/illikainen/go-utils/src/process"
 	"github.com/illikainen/go-utils/src/sandbox"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -19,6 +20,8 @@ import (
 )
 
 type Options struct {
+	Sandbox   sandbox.Sandbox
+	sandbox   string
 	Configp   flag.Path
 	Config    *config.Config
 	Profile   string
@@ -50,6 +53,8 @@ func init() {
 	for _, level := range log.AllLevels {
 		levels = append(levels, level.String())
 	}
+
+	flags.StringVarP(&options.sandbox, "sandbox", "", "", "Sandbox backend")
 
 	options.Configp.State = flag.MustExist
 	flags.Var(&options.Configp, "config", "Configuration file")
@@ -139,5 +144,40 @@ func preRun(cmd *cobra.Command, _ []string) error {
 	if !sandbox.IsSandboxed() {
 		cmd.SilenceUsage = false
 	}
+
+	backend, err := sandbox.Backend(options.sandbox)
+	if err != nil {
+		return err
+	}
+
+	switch backend {
+	case sandbox.BubblewrapSandbox:
+		options.Sandbox, err = sandbox.NewBubblewrap(&sandbox.BubblewrapOptions{
+			ReadOnlyPaths: append([]string{
+				options.Configp.String(),
+				options.PrivKey.String(),
+			}, options.PubKeys.StringSlice()...),
+			ReadWritePaths: []string{
+				options.GoPath.String(),
+				options.GoCache.String(),
+				options.CacheDir.String(),
+			},
+			Tmpfs:            true,
+			Devtmpfs:         true,
+			Procfs:           true,
+			AllowCommonPaths: true,
+			Stdout:           process.LogrusOutput,
+			Stderr:           process.LogrusOutput,
+		})
+		if err != nil {
+			return err
+		}
+	case sandbox.NoSandbox:
+		options.Sandbox, err = sandbox.NewNoop()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

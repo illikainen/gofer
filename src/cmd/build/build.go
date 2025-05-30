@@ -8,7 +8,6 @@ import (
 	"github.com/illikainen/gofer/src/build"
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
-	"github.com/illikainen/gofer/src/sandbox"
 
 	"github.com/illikainen/go-utils/src/flag"
 	"github.com/illikainen/go-utils/src/iofs"
@@ -48,9 +47,11 @@ func init() {
 	lo.Must0(command.MarkFlagRequired("output"))
 }
 
-func preRun(cmd *cobra.Command, _ []string) error {
-	ro := []string{}
-	rw := []string{"."}
+func preRun(_ *cobra.Command, _ []string) error {
+	err := options.Sandbox.AddReadWritePath(".")
+	if err != nil {
+		return err
+	}
 
 	exists, err := iofs.Exists("go.work")
 	if err != nil {
@@ -65,7 +66,10 @@ func preRun(cmd *cobra.Command, _ []string) error {
 		for _, replace := range work.Replace {
 			path := replace.New.String()
 			if strings.HasPrefix(path, ".") {
-				ro = append(ro, path)
+				err := options.Sandbox.AddReadOnlyPath(path)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -74,20 +78,18 @@ func preRun(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	ro = append(ro, cwd)
 
 	cfg, err := os.UserConfigDir()
 	if err != nil {
 		return err
 	}
-	ro = append(ro, filepath.Join(cfg, "go"))
 
-	return sandbox.Exec(&sandbox.SandboxOptions{
-		Subcommand: cmd.CalledAs(),
-		Flags:      cmd.Flags(),
-		RO:         ro,
-		RW:         rw,
-	})
+	err = options.Sandbox.AddReadOnlyPath(cwd, filepath.Join(cfg, "go"))
+	if err != nil {
+		return err
+	}
+
+	return options.Sandbox.Confine()
 }
 
 func run(cmd *cobra.Command, _ []string) error {
