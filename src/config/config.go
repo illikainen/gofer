@@ -5,45 +5,54 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/illikainen/gofer/src/gox"
 	"github.com/illikainen/gofer/src/metadata"
 
+	"dario.cat/mergo"
 	"github.com/BurntSushi/toml"
 )
 
-type Root struct {
-	Settings
-	Profiles map[string]Settings
-}
-
-type Settings struct {
+type Config struct {
+	Profile   string
 	PrivKey   string
 	PubKeys   []string
+	Sandbox   string
 	Verbosity string
 	URL       string
 	CacheDir  string
+	GoPath    string
+	GoCache   string
+	Profiles  map[string]Config
 }
 
-type Config struct {
-	Root
-	Path string
-}
-
-func Read(path string) (*Config, error) {
+func Read(path string, overrides *Config) (*Config, error) {
 	cache, err := os.UserCacheDir()
 	if err != nil {
 		return nil, err
 	}
 
-	c := &Config{
-		Path: path,
-		Root: Root{
-			Settings: Settings{
-				CacheDir: filepath.Join(cache, metadata.Name()),
-			},
-		},
+	goPath, err := gox.GoPath()
+	if err != nil {
+		return nil, err
 	}
-	_, err = toml.DecodeFile(path, &c.Settings)
+
+	goCache, err := gox.GoCache()
+	if err != nil {
+		return nil, err
+	}
+
+	c := &Config{
+		CacheDir: filepath.Join(cache, metadata.Name()),
+		GoPath:   goPath,
+		GoCache:  goCache,
+	}
+	_, err = toml.DecodeFile(path, &c)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+
+	err = mergo.Merge(c, overrides, mergo.WithOverride)
+	if err != nil {
 		return nil, err
 	}
 

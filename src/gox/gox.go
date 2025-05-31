@@ -3,6 +3,7 @@ package gox
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/illikainen/gofer/src/metadata"
@@ -57,4 +58,24 @@ func (g *Go) Build(output string, goos string, goarch string) error {
 		Stderr: process.LogrusOutput,
 	})
 	return err
+}
+
+func GoPath() (string, error) {
+	cmd := exec.Command("go", "env", "GOPATH")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Trim(string(out), "\r\n"), nil
+}
+
+func GoCache() (string, error) {
+	cmd := exec.Command("go", "env", "GOCACHE")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Trim(string(out), "\r\n"), nil
 }

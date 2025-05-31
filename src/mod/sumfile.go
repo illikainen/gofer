@@ -387,7 +387,7 @@ func (s *SumFile) VerifyAndSign(keyring *blob.Keyring) error {
 	return nil
 }
 
-func (s *SumFile) DownloadAndVerify(uri *url.URL, keyring *blob.Keyring) error {
+func (s *SumFile) DownloadAndVerify(uri string, keyring *blob.Keyring) error {
 	group := errgroup.Group{}
 	semaphore := make(chan int, 3)
 
@@ -395,8 +395,13 @@ func (s *SumFile) DownloadAndVerify(uri *url.URL, keyring *blob.Keyring) error {
 		return len(a.String()) > len(b.String())
 	}).String())
 
+	baseuri, err := url.Parse(uri)
+	if err != nil {
+		return err
+	}
+
 	for _, m := range s.ModFiles {
-		u, err := uri.Parse(filepath.Join(uri.Path, m.SigName()))
+		u, err := baseuri.Parse(filepath.Join(baseuri.Path, m.SigName()))
 		if err != nil {
 			return err
 		}
@@ -415,7 +420,7 @@ func (s *SumFile) DownloadAndVerify(uri *url.URL, keyring *blob.Keyring) error {
 		})
 	}
 
-	err := group.Wait()
+	err = group.Wait()
 	if err != nil {
 		return err
 	}
@@ -428,7 +433,7 @@ func (s *SumFile) DownloadAndVerify(uri *url.URL, keyring *blob.Keyring) error {
 			}
 			seen = append(seen, i.String())
 
-			u, err := uri.Parse(filepath.Join(uri.Path, i.SigName()))
+			u, err := baseuri.Parse(filepath.Join(baseuri.Path, i.SigName()))
 			if err != nil {
 				return err
 			}
@@ -452,7 +457,7 @@ func (s *SumFile) DownloadAndVerify(uri *url.URL, keyring *blob.Keyring) error {
 	}
 
 	for _, src := range s.Sources {
-		u, err := uri.Parse(filepath.Join(uri.Path, src.SigName()))
+		u, err := baseuri.Parse(filepath.Join(baseuri.Path, src.SigName()))
 		if err != nil {
 			return err
 		}

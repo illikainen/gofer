@@ -3,10 +3,8 @@ package signcachecmd
 import (
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
-	"github.com/illikainen/gofer/src/sandbox"
 
 	"github.com/illikainen/go-cryptor/src/blob"
-	"github.com/illikainen/go-utils/src/flag"
 	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,8 +12,7 @@ import (
 
 var options struct {
 	*rootcmd.Options
-	output flag.Path
-	goSums flag.PathSlice
+	output string
 }
 
 var command = &cobra.Command{
@@ -34,41 +31,36 @@ func Command(opts *rootcmd.Options) *cobra.Command {
 func init() {
 	flags := command.Flags()
 
-	options.output.State = flag.MustBeDir | flag.MustNotExist
-	options.output.Mode = flag.ReadWriteMode
-	flags.VarP(&options.output, "output", "o", "Output directory for archived modules")
+	flags.StringVarP(&options.output, "output", "o", "", "Output directory for archived modules")
 	lo.Must0(command.MarkFlagRequired("output"))
-
-	flags.VarP(&options.goSums, "go-sums", "", "Go.sum files to parse")
-	lo.Must0(flags.MarkHidden("go-sums"))
 }
 
-func modSignCachePreRun(cmd *cobra.Command, args []string) (err error) {
-	for _, arg := range args {
-		err := options.goSums.Set(arg)
-		if err != nil {
-			return err
-		}
+func modSignCachePreRun(_ *cobra.Command, args []string) error {
+	err := options.Sandbox.AddReadOnlyPath(args...)
+	if err != nil {
+		return err
 	}
 
-	return sandbox.Exec(&sandbox.SandboxOptions{
-		Subcommand: cmd.CalledAs(),
-		Flags:      cmd.Flags(),
-	})
+	err = options.Sandbox.AddReadWritePath(options.output)
+	if err != nil {
+		return err
+	}
+
+	return options.Sandbox.Confine()
 }
 
 func modSignCacheRun(cmd *cobra.Command, args []string) (err error) {
 	cmd.SilenceUsage = true
 
-	keys, err := blob.ReadKeyring(options.PrivKey.String(), options.PubKeys.StringSlice())
+	keys, err := blob.ReadKeyring(options.PrivKey, options.PubKeys)
 	if err != nil {
 		return err
 	}
 
 	sum, err := mod.ReadGoSum(&mod.SumOptions{
 		SumFiles: args,
-		SigPath:  options.output.String(),
-		GoPath:   options.GoPath.String(),
+		SigPath:  options.output,
+		GoPath:   options.GoPath,
 		Log:      log.StandardLogger(),
 	})
 	if err != nil {
@@ -80,6 +72,6 @@ func modSignCacheRun(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	log.Infof("successfully wrote signed cache to %s", options.output.String())
+	log.Infof("successfully wrote signed cache to %s", options.output)
 	return nil
 }

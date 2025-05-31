@@ -9,7 +9,6 @@ import (
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
 
-	"github.com/illikainen/go-utils/src/flag"
 	"github.com/illikainen/go-utils/src/iofs"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -19,7 +18,7 @@ var options struct {
 	*rootcmd.Options
 	targets []string
 	release bool
-	output  flag.Path
+	output  string
 }
 
 var command = &cobra.Command{
@@ -41,14 +40,12 @@ func init() {
 
 	flags.BoolVarP(&options.release, "release", "", false, "Do a release build")
 
-	options.output.Mode = flag.ReadWriteMode
-	options.output.State = flag.MustBeDir
-	flags.VarP(&options.output, "output", "o", "Output directory")
+	flags.StringVarP(&options.output, "output", "o", "", "Output directory")
 	lo.Must0(command.MarkFlagRequired("output"))
 }
 
 func preRun(_ *cobra.Command, _ []string) error {
-	err := options.Sandbox.AddReadWritePath(".")
+	err := options.Sandbox.AddReadWritePath(".", options.output)
 	if err != nil {
 		return err
 	}
@@ -102,7 +99,7 @@ func run(cmd *cobra.Command, _ []string) error {
 
 	err = build.Run(&build.Options{
 		Input:   cwd,
-		Output:  options.output.String(),
+		Output:  options.output,
 		Targets: options.targets,
 		Release: options.release,
 	})

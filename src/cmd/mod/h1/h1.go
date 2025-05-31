@@ -7,11 +7,8 @@ import (
 
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/h1"
-	"github.com/illikainen/gofer/src/sandbox"
 
-	"github.com/illikainen/go-utils/src/flag"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +16,6 @@ import (
 var options struct {
 	*rootcmd.Options
 	module string
-	input  flag.Path
 }
 
 var command = &cobra.Command{
@@ -40,35 +36,26 @@ func init() {
 
 	flags.StringVarP(&options.module, "module", "m", "",
 		"Specify the module's <name>@v<version>, required when the target is a directory")
-
-	options.input.State = flag.MustExist
-	flags.VarP(&options.input, "input", "", "File or directory to H1")
-	lo.Must0(flags.MarkHidden("input"))
 }
 
-func preRun(cmd *cobra.Command, args []string) (err error) {
-	for _, arg := range args {
-		err := options.input.Set(arg)
-		if err != nil {
-			return err
-		}
-	}
-
-	return sandbox.Exec(&sandbox.SandboxOptions{
-		Subcommand: cmd.CalledAs(),
-		Flags:      cmd.Flags(),
-	})
-}
-
-func run(cmd *cobra.Command, _ []string) error {
-	cmd.SilenceUsage = true
-
-	stat, err := os.Stat(options.input.String())
+func preRun(_ *cobra.Command, args []string) error {
+	err := options.Sandbox.AddReadOnlyPath(args[0])
 	if err != nil {
 		return err
 	}
 
-	input := options.input.String()
+	return options.Sandbox.Confine()
+}
+
+func run(cmd *cobra.Command, args []string) error {
+	cmd.SilenceUsage = true
+
+	input := args[0]
+	stat, err := os.Stat(input)
+	if err != nil {
+		return err
+	}
+
 	if stat.IsDir() {
 		if options.module == "" {
 			return errors.Errorf("required flag(s) \"module\" not set")

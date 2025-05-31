@@ -7,15 +7,13 @@ import (
 	"github.com/illikainen/gofer/src/mod"
 
 	"github.com/illikainen/go-cryptor/src/blob"
-	"github.com/illikainen/go-utils/src/flag"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var options struct {
 	*rootcmd.Options
-	input  flag.Path
-	goSums flag.PathSlice
+	input string
 }
 
 var command = &cobra.Command{
@@ -34,12 +32,11 @@ func Command(opts *rootcmd.Options) *cobra.Command {
 func init() {
 	flags := command.Flags()
 
-	options.input.State = flag.MustExist
-	flags.VarP(&options.input, "input", "i", "Directory with signed modules and metadata")
+	flags.StringVarP(&options.input, "input", "i", "", "Directory with signed modules and metadata")
 }
 
 func preRun(_ *cobra.Command, args []string) error {
-	err := options.Sandbox.AddReadOnlyPath(args...)
+	err := options.Sandbox.AddReadOnlyPath(append([]string{options.input}, args...)...)
 	if err != nil {
 		return err
 	}
@@ -50,12 +47,12 @@ func preRun(_ *cobra.Command, args []string) error {
 func run(cmd *cobra.Command, args []string) (err error) {
 	cmd.SilenceUsage = true
 
-	keys, err := blob.ReadKeyring(options.PrivKey.String(), options.PubKeys.StringSlice())
+	keys, err := blob.ReadKeyring(options.PrivKey, options.PubKeys)
 	if err != nil {
 		return err
 	}
 
-	input := options.input.String()
+	input := options.input
 	if input == "" {
 		input = filepath.Join(options.Config.CacheDir, "mod")
 	}
@@ -63,7 +60,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	sum, err := mod.ReadGoSum(&mod.SumOptions{
 		SumFiles: args,
 		SigPath:  input,
-		GoPath:   options.GoPath.String(),
+		GoPath:   options.GoPath,
 		Log:      log.StandardLogger(),
 	})
 	if err != nil {
@@ -84,7 +81,7 @@ func run(cmd *cobra.Command, args []string) (err error) {
 		log.Info("        (all signed files also had their content fully verified)")
 	}
 
-	log.Infof("\nsuccessfully verified module(s) and metadata in %s:", options.GoPath.String())
+	log.Infof("\nsuccessfully verified module(s) and metadata in %s:", options.GoPath)
 	log.Infof("    %d Go cache zip sources", len(vr.GoZipSources))
 	log.Infof("    %d Go cache dir sources", len(vr.GoDirSources))
 	log.Infof("    %d Go cache mod files", len(vr.GoModFiles))

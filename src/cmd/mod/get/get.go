@@ -1,15 +1,14 @@
 package getcmd
 
 import (
+	"net/url"
 	"path/filepath"
 	"strings"
 
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
-	"github.com/illikainen/gofer/src/sandbox"
 
 	"github.com/illikainen/go-cryptor/src/blob"
-	"github.com/illikainen/go-utils/src/flag"
 
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
@@ -27,8 +26,7 @@ var command = &cobra.Command{
 
 var options struct {
 	*rootcmd.Options
-	url    flag.URL
-	goSums flag.PathSlice
+	url string
 }
 
 func Command(opts *rootcmd.Options) *cobra.Command {
@@ -39,43 +37,39 @@ func Command(opts *rootcmd.Options) *cobra.Command {
 func init() {
 	flags := command.Flags()
 
-	flags.Var(&options.url, "url", "repository url")
-
-	flags.VarP(&options.goSums, "go-sums", "", "Go.sum files to parse")
-	lo.Must0(flags.MarkHidden("go-sums"))
+	flags.StringVarP(&options.url, "url", "", "", "repository url")
 }
 
-func preRun(cmd *cobra.Command, args []string) error {
-	flags := cmd.Flags()
-
-	cfg := options.Config
-	pcfg := cfg.Profiles[options.Profile]
-
-	if err := flag.SetFallback(flags, "url", pcfg.URL, cfg.URL); err != nil {
-		return err
-	}
-
-	if options.url.Value == nil {
+func preRun(_ *cobra.Command, args []string) error {
+	uri, ok := lo.Coalesce(options.url, options.URL)
+	if !ok || uri == "" {
 		return errors.Errorf("required flag(s) \"url\" not set")
 	}
 
-	for _, arg := range args {
-		err := options.goSums.Set(arg)
+	u, err := url.Parse(uri)
+	if err != nil {
+		return err
+	}
+
+	if u.Scheme == "file" {
+		err := options.Sandbox.AddReadOnlyPath(u.Path)
 		if err != nil {
 			return err
 		}
 	}
 
-	return sandbox.Exec(&sandbox.SandboxOptions{
-		Subcommand: cmd.CalledAs(),
-		Flags:      cmd.Flags(),
-	})
+	err = options.Sandbox.AddReadOnlyPath(args...)
+	if err != nil {
+		return err
+	}
+
+	return options.Sandbox.Confine()
 }
 
 func run(cmd *cobra.Command, args []string) (err error) {
 	cmd.SilenceUsage = true
 
-	keys, err := blob.ReadKeyring(options.PrivKey.String(), options.PubKeys.StringSlice())
+	keys, err := blob.ReadKeyring(options.PrivKey, options.PubKeys)
 	if err != nil {
 		return err
 	}
@@ -83,14 +77,14 @@ func run(cmd *cobra.Command, args []string) (err error) {
 	sum, err := mod.ReadGoSum(&mod.SumOptions{
 		SumFiles: args,
 		SigPath:  filepath.Join(options.Config.CacheDir, "mod"),
-		GoPath:   options.GoPath.String(),
+		GoPath:   options.GoPath,
 		Log:      log.StandardLogger(),
 	})
 	if err != nil {
 		return err
 	}
 
-	err = sum.DownloadAndVerify(options.url.Value, keys)
+	err = sum.DownloadAndVerify(options.url, keys)
 	if err != nil {
 		return err
 	}

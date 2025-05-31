@@ -10,7 +10,6 @@ import (
 	"github.com/illikainen/gofer/src/tools"
 
 	"github.com/illikainen/go-cryptor/src/blob"
-	"github.com/illikainen/go-utils/src/flag"
 	"github.com/illikainen/go-utils/src/iofs"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -18,7 +17,7 @@ import (
 
 var options struct {
 	*rootcmd.Options
-	bindir flag.Path
+	bindir string
 }
 
 var command = &cobra.Command{
@@ -42,27 +41,16 @@ func Command(opts *rootcmd.Options) *cobra.Command {
 func init() {
 	flags := command.Flags()
 
-	options.bindir.Mode = flag.ReadWriteMode
-	options.bindir.State = flag.MustBeDir
-	flags.VarP(&options.bindir, "bindir", "b", "Binary directory for new builds")
-	lo.Must0(flags.MarkHidden("bindir"))
+	flags.StringVarP(&options.bindir, "bindir", "b",
+		filepath.Join(lo.Must1(os.UserHomeDir()), ".local", ".bin"),
+		"Binary directory for new builds")
 }
 
 func preRun(cmd *cobra.Command, _ []string) error {
 	cmd.SilenceUsage = true
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	err = flag.SetFallback(cmd.Flags(), "bindir", filepath.Join(home, ".local", "bin"))
-	if err != nil {
-		return err
-	}
-
-	ro := []string{"."}
-	rw := []string{options.bindir.String()}
+	ro := []string{}
+	rw := []string{".", options.bindir}
 
 	exists, err := iofs.Exists("go.work")
 	if err != nil {
@@ -96,17 +84,17 @@ func preRun(cmd *cobra.Command, _ []string) error {
 }
 
 func run(_ *cobra.Command, args []string) (err error) {
-	keys, err := blob.ReadKeyring(options.PrivKey.String(), options.PubKeys.StringSlice())
+	keys, err := blob.ReadKeyring(options.PrivKey, options.PubKeys)
 	if err != nil {
 		return err
 	}
 
 	return tools.Exec(&tools.ToolOptions{
 		Bin:     args[0],
-		BinDir:  options.bindir.String(),
+		BinDir:  options.bindir,
 		Args:    args[1:],
 		SigPath: filepath.Join(options.Config.CacheDir, "mod"),
-		GoPath:  options.GoPath.String(),
+		GoPath:  options.GoPath,
 		Keyring: keys,
 	})
 }
