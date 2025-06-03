@@ -46,7 +46,7 @@ func init() {
 	flags.StringVarP(&options.Profile, "profile", "p", "", "Profile to use")
 	flags.StringVarP(&options.PrivKey, "privkey", "", "", "Private key file")
 	flags.StringSliceVarP(&options.PubKeys, "pubkeys", "", nil, "Public key file(s)")
-	flags.StringVarP(&options.Verbosity, "verbosity", "V", "info",
+	flags.StringVarP(&options.Verbosity, "verbosity", "V", "",
 		fmt.Sprintf("Verbosity (%s)", strings.Join(levels, ", ")))
 	flags.StringVarP(&options.sandbox, "sandbox", "", "", "Sandbox backend")
 

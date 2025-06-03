@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 
@@ -10,10 +9,11 @@ import (
 
 	"dario.cat/mergo"
 	"github.com/BurntSushi/toml"
+	"github.com/pkg/errors"
 )
 
 type Config struct {
-	Profile   string
+	Profile   string `toml:"-"`
 	PrivKey   string
 	PubKeys   []string
 	Sandbox   string
@@ -22,7 +22,7 @@ type Config struct {
 	CacheDir  string
 	GoPath    string
 	GoCache   string
-	Profiles  map[string]Config
+	Profiles  map[string]Config `toml:"profile"`
 }
 
 func Read(path string, overrides *Config) (*Config, error) {
@@ -42,13 +42,26 @@ func Read(path string, overrides *Config) (*Config, error) {
 	}
 
 	c := &Config{
-		CacheDir: filepath.Join(cache, metadata.Name()),
-		GoPath:   goPath,
-		GoCache:  goCache,
+		Verbosity: "info",
+		CacheDir:  filepath.Join(cache, metadata.Name()),
+		GoPath:    goPath,
+		GoCache:   goCache,
 	}
 	_, err = toml.DecodeFile(path, &c)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, err
+	}
+
+	if overrides.Profile != "" {
+		profile, ok := c.Profiles[overrides.Profile]
+		if !ok {
+			return nil, errors.Errorf("invalid profile: %s", overrides.Profile)
+		}
+
+		err = mergo.Merge(c, profile, mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = mergo.Merge(c, overrides, mergo.WithOverride)
