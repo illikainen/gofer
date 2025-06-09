@@ -29,6 +29,9 @@ func New(opts *Options) *Go {
 			os.Environ(),
 			"GOFLAGS=-mod=readonly",
 			"GOPROXY=off",
+			"LC_ALL=C",
+			"TZ=UTC",
+			"SOURCE_DATE_EPOCH=0",
 			fmt.Sprintf("%s_RELEASE=%v", strings.ToUpper(metadata.Name()), opts.Release),
 		),
 	}
