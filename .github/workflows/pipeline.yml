@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - master
+      - dev
     pull_request:
       - master
+      - dev
 
 jobs:
   pipeline:
@@ -19,22 +21,29 @@ jobs:
           apt-get update
           apt-get -y dist-upgrade
           apt-get -y install ca-certificates git golang make
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Build
         run: |
           set -ex
           chown -R root:root .
           make tidy
+          make verify
           make
           make release
           find build ! -type d ! -name SHA256SUMS -exec sha256sum '{}' \; >build/SHA256SUMS
           cat build/SHA256SUMS
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           path: ./build
-      - name: Lint
-        run: make check
+      - name: Test
+        run: |
+          set -ex
+          make check
+          make test
