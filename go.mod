@@ -19,7 +19,6 @@ require (
 	github.com/securego/gosec/v2 v2.15.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
-	github.com/spf13/pflag v1.0.5
 	golang.org/x/mod v0.12.0
 	golang.org/x/sync v0.5.0
 	golang.org/x/tools v0.13.0
@@ -52,6 +51,7 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.10 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/xlab/treeprint v1.1.0 // indirect
