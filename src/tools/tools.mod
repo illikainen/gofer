@@ -10,7 +10,7 @@ require (
 	github.com/gostaticanalysis/nilerr v0.1.1
 	github.com/illikainen/go-cryptor v0.0.0-20250505122540-fd5a2321b8f5
 	github.com/illikainen/go-netutils v0.0.0-20250505122326-0e2700986716
-	github.com/illikainen/go-utils v0.0.0-20250603184054-e6bcd2510926
+	github.com/illikainen/go-utils v0.0.0-20250609153058-d4566b4ba778
 	github.com/kisielk/errcheck v1.6.3
 	github.com/mattn/go-isatty v0.0.17
 	github.com/mgechev/revive v1.3.2
