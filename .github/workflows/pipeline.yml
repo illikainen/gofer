@@ -1,13 +1,6 @@
 name: Pipeline
 
-on:
-  push:
-    branches:
-      - master
-      - dev
-    pull_request:
-      - master
-      - dev
+on: [push, pull_request]
 
 jobs:
   pipeline:
@@ -15,9 +8,12 @@ jobs:
     container:
       image: debian:12
     steps:
+      - name: Prepare signing key
+        run: |
+          echo 'dev-personal-git@iodine ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOaK5/rx1e5OSInMYOwoLeGyIwi7Hpao0qUC4oyO0/Wr' >"${HOME}/.signers"
+
       - name: Prepare packages
         run: |
-          set -ex
           apt-get update
           apt-get -y dist-upgrade
           apt-get -y install ca-certificates git golang make
@@ -29,14 +25,14 @@ jobs:
 
       - name: Build
         run: |
-          set -ex
           chown -R root:root .
+          git -c gpg.ssh.allowedSignersFile="${HOME}/.signers" verify-commit HEAD
           make tidy
           make verify
           make
           make release
-          find build ! -type d ! -name SHA256SUMS -exec sha256sum '{}' \; >build/SHA256SUMS
-          cat build/SHA256SUMS
+          find build ! -type d ! -name SHA256SUMS -exec sha256sum --tag '{}' \; >build/SHA256SUMS
+          cat build/SHA256SUMS |sort
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -44,6 +40,5 @@ jobs:
           path: ./build
       - name: Test
         run: |
-          set -ex
           make check
           make test
