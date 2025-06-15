@@ -7,9 +7,9 @@ import (
 	"github.com/illikainen/gofer/src/config"
 	"github.com/illikainen/gofer/src/metadata"
 
+	"github.com/illikainen/go-utils/src/fn"
 	"github.com/illikainen/go-utils/src/process"
 	"github.com/illikainen/go-utils/src/sandbox"
-	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +42,7 @@ func init() {
 		levels = append(levels, level.String())
 	}
 
-	flags.StringVarP(&options.config, "config", "", lo.Must1(config.ConfigFile()), "Configuration file")
+	flags.StringVarP(&options.config, "config", "", fn.Must1(config.ConfigFile()), "Configuration file")
 	flags.StringVarP(&options.Profile, "profile", "p", "", "Profile to use")
 	flags.StringVarP(&options.PrivKey, "privkey", "", "", "Private key file")
 	flags.StringSliceVarP(&options.PubKeys, "pubkeys", "", nil, "Public key file(s)")
@@ -73,7 +73,7 @@ func preRun(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = false
 	}
 
-	name := lo.Ternary(options.sandbox != "", options.sandbox, options.Config.Sandbox)
+	name := fn.Ternary(options.sandbox != "", options.sandbox, options.Config.Sandbox)
 	backend, err := sandbox.Backend(name)
 	if err != nil {
 		return err

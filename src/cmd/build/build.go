@@ -9,8 +9,8 @@ import (
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 	"github.com/illikainen/gofer/src/mod"
 
+	"github.com/illikainen/go-utils/src/fn"
 	"github.com/illikainen/go-utils/src/iofs"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
@@ -41,7 +41,7 @@ func init() {
 	flags.BoolVarP(&options.release, "release", "", false, "Do a release build")
 
 	flags.StringVarP(&options.output, "output", "o", "", "Output directory")
-	lo.Must0(command.MarkFlagRequired("output"))
+	fn.Must(command.MarkFlagRequired("output"))
 }
 
 func preRun(_ *cobra.Command, _ []string) error {

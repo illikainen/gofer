@@ -9,9 +9,8 @@ import (
 	"github.com/illikainen/gofer/src/mod"
 
 	"github.com/illikainen/go-cryptor/src/blob"
-
+	"github.com/illikainen/go-utils/src/seq"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -41,7 +40,7 @@ func init() {
 }
 
 func preRun(_ *cobra.Command, args []string) error {
-	uri, ok := lo.Coalesce(options.url, options.URL)
+	uri, ok := seq.Coalesce(options.url, options.URL)
 	if !ok || uri == "" {
 		return errors.Errorf("required flag(s) \"url\" not set")
 	}

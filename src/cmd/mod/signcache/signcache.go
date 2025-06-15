@@ -5,7 +5,7 @@ import (
 	"github.com/illikainen/gofer/src/mod"
 
 	"github.com/illikainen/go-cryptor/src/blob"
-	"github.com/samber/lo"
+	"github.com/illikainen/go-utils/src/fn"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +32,7 @@ func init() {
 	flags := command.Flags()
 
 	flags.StringVarP(&options.output, "output", "o", "", "Output directory for archived modules")
-	lo.Must0(command.MarkFlagRequired("output"))
+	fn.Must(command.MarkFlagRequired("output"))
 }
 
 func modSignCachePreRun(_ *cobra.Command, args []string) error {

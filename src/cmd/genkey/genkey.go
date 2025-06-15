@@ -7,7 +7,7 @@ import (
 	rootcmd "github.com/illikainen/gofer/src/cmd/root"
 
 	"github.com/illikainen/go-cryptor/src/asymmetric"
-	"github.com/samber/lo"
+	"github.com/illikainen/go-utils/src/fn"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +34,7 @@ func init() {
 
 	flags.StringVarP(&options.output, "output", "o", "",
 		"Write the generated keypair to <output>.pub and <output>.priv")
-	lo.Must0(command.MarkFlagRequired("output"))
+	fn.Must(command.MarkFlagRequired("output"))
 
 	flags.DurationVarP(&options.delay, "delay", "d", 60*time.Second,
 		"Add a delay between each generated key")

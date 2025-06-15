@@ -10,8 +10,8 @@ import (
 	"github.com/illikainen/gofer/src/tools"
 
 	"github.com/illikainen/go-cryptor/src/blob"
+	"github.com/illikainen/go-utils/src/fn"
 	"github.com/illikainen/go-utils/src/iofs"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ func init() {
 	flags := command.Flags()
 
 	flags.StringVarP(&options.bindir, "bindir", "b",
-		filepath.Join(lo.Must1(os.UserHomeDir()), ".local", ".bin"),
+		filepath.Join(fn.Must1(os.UserHomeDir()), ".local", ".bin"),
 		"Binary directory for new builds")
 }
 

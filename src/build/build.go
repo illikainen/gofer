@@ -12,7 +12,7 @@ import (
 
 	"github.com/illikainen/go-utils/src/errorx"
 	"github.com/illikainen/go-utils/src/iofs"
-	"github.com/samber/lo"
+	"github.com/illikainen/go-utils/src/seq"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -78,7 +78,7 @@ func Run(opts *Options) (err error) {
 		basename := fmt.Sprintf("%s-%s-%s", filepath.Base(modfile.Module.Mod.Path), goos, goarch)
 		dst := filepath.Join(output, basename)
 
-		if lo.Contains(builds, dst) {
+		if seq.Contains(builds, dst) {
 			continue
 		}
 		builds = append(builds, dst)

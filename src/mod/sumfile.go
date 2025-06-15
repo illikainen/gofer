@@ -16,10 +16,11 @@ import (
 	"github.com/illikainen/go-cryptor/src/blob"
 	"github.com/illikainen/go-netutils/src/transport"
 	"github.com/illikainen/go-utils/src/errorx"
+	"github.com/illikainen/go-utils/src/fn"
 	"github.com/illikainen/go-utils/src/iofs"
 	"github.com/illikainen/go-utils/src/logging"
+	"github.com/illikainen/go-utils/src/seq"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -42,7 +43,7 @@ func ReadGoSum(opts *SumOptions) (g *SumFile, err error) {
 	gosum := &SumFile{
 		sigPath: opts.SigPath,
 		goPath:  opts.GoPath,
-		log:     lo.Ternary(opts.Log != nil, opts.Log, logging.DiscardLogger()),
+		log:     fn.Ternary(opts.Log != nil, opts.Log, logging.DiscardLogger()),
 	}
 	seen := []string{}
 
@@ -80,7 +81,7 @@ func ReadGoSum(opts *SumOptions) (g *SumFile, err error) {
 			}
 
 			seenElt := fmt.Sprintf("%s@%s@%s", name, version, cksum)
-			if !lo.Contains(seen, seenElt) {
+			if !seq.Contains(seen, seenElt) {
 				if mod {
 					gosum.ModFiles = append(gosum.ModFiles, &ModFile{
 						Name:     name,
@@ -161,7 +162,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 	})
 
 	align := 0
-	aligner := lo.MaxBy(sigFiles, func(a fs.DirEntry, b fs.DirEntry) bool {
+	aligner := seq.MaxBy(sigFiles, func(a fs.DirEntry, b fs.DirEntry) bool {
 		return len(a.Name()) > len(b.Name())
 	})
 	if aligner != nil {
@@ -171,7 +172,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 	// Verify signed files.
 	vr = &VerifyResult{}
 	for _, elt := range sigFiles {
-		if lo.Contains(vr.SignedFiles, elt.Name()) {
+		if seq.Contains(vr.SignedFiles, elt.Name()) {
 			continue
 		}
 
@@ -196,7 +197,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 		// If the file is referenced in the go.sum, also verify the
 		// content of the signed data.
 		for _, src := range s.Sources {
-			if src.SigName() == elt.Name() && !lo.Contains(vr.SignedSources, elt.Name()) {
+			if src.SigName() == elt.Name() && !seq.Contains(vr.SignedSources, elt.Name()) {
 				tmpfile := filepath.Join(tmp, src.ZipName())
 				err := iofs.Copy(tmpfile, blobber)
 				if err != nil {
@@ -214,7 +215,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 		}
 
 		for _, m := range s.ModFiles {
-			if m.SigName() == elt.Name() && !lo.Contains(vr.SignedModFiles, elt.Name()) {
+			if m.SigName() == elt.Name() && !seq.Contains(vr.SignedModFiles, elt.Name()) {
 				tmpfile := filepath.Join(tmp, m.ModName())
 				err := iofs.Copy(tmpfile, blobber)
 				if err != nil {
@@ -231,7 +232,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 			}
 
 			for _, i := range m.InfoFiles {
-				if i.SigName() == elt.Name() && !lo.Contains(vr.SignedInfoFiles, elt.Name()) {
+				if i.SigName() == elt.Name() && !seq.Contains(vr.SignedInfoFiles, elt.Name()) {
 					tmpfile := filepath.Join(tmp, i.InfoName())
 					err := iofs.Copy(tmpfile, blobber)
 					if err != nil {
@@ -257,7 +258,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if exists && !lo.Contains(vr.GoZipSources, src.ZipPath()) {
+		if exists && !seq.Contains(vr.GoZipSources, src.ZipPath()) {
 			err := src.Verify(src.ZipPath(), ZipMode)
 			if err != nil {
 				return nil, err
@@ -271,7 +272,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if exists && !lo.Contains(vr.GoDirSources, src.DirPath()) {
+		if exists && !seq.Contains(vr.GoDirSources, src.DirPath()) {
 			err := src.Verify(src.DirPath(), DirMode)
 			if err != nil {
 				return nil, err
@@ -287,7 +288,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if exists && !lo.Contains(vr.GoModFiles, m.ModPath()) {
+		if exists && !seq.Contains(vr.GoModFiles, m.ModPath()) {
 			err := m.Verify(m.ModPath())
 			if err != nil {
 				return nil, err
@@ -302,7 +303,7 @@ func (s *SumFile) Verify(keyring *blob.Keyring) (vr *VerifyResult, err error) {
 			if err != nil {
 				return nil, err
 			}
-			if exists && !lo.Contains(vr.GoInfoFiles, i.InfoPath()) {
+			if exists && !seq.Contains(vr.GoInfoFiles, i.InfoPath()) {
 				err := i.Verify(i.InfoPath())
 				if err != nil {
 					return nil, err
@@ -326,7 +327,7 @@ func (s *SumFile) VerifyAndSign(keyring *blob.Keyring) error {
 		return err
 	}
 
-	align := len(lo.MaxBy(s.ModFiles, func(a *ModFile, b *ModFile) bool {
+	align := len(seq.MaxBy(s.ModFiles, func(a *ModFile, b *ModFile) bool {
 		return len(a.String()) > len(b.String())
 	}).String())
 
@@ -352,7 +353,7 @@ func (s *SumFile) VerifyAndSign(keyring *blob.Keyring) error {
 		s.log.Infof("%-*s: verified %s", align, m, m.Checksum)
 
 		for _, i := range m.InfoFiles {
-			if lo.Contains(seen, i.String()) {
+			if seq.Contains(seen, i.String()) {
 				continue
 			}
 			seen = append(seen, i.String())
@@ -391,7 +392,7 @@ func (s *SumFile) DownloadAndVerify(uri string, keyring *blob.Keyring) error {
 	group := errgroup.Group{}
 	semaphore := make(chan int, 3)
 
-	align := len(lo.MaxBy(s.ModFiles, func(a *ModFile, b *ModFile) bool {
+	align := len(seq.MaxBy(s.ModFiles, func(a *ModFile, b *ModFile) bool {
 		return len(a.String()) > len(b.String())
 	}).String())
 
@@ -428,7 +429,7 @@ func (s *SumFile) DownloadAndVerify(uri string, keyring *blob.Keyring) error {
 	seen := []string{}
 	for _, m := range s.ModFiles {
 		for _, i := range m.InfoFiles {
-			if lo.Contains(seen, i.String()) {
+			if seq.Contains(seen, i.String()) {
 				continue
 			}
 			seen = append(seen, i.String())
