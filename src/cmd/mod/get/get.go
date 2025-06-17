@@ -44,6 +44,7 @@ func preRun(_ *cobra.Command, args []string) error {
 	if !ok || uri == "" {
 		return errors.Errorf("required flag(s) \"url\" not set")
 	}
+	options.url = uri
 
 	u, err := url.Parse(uri)
 	if err != nil {
@@ -55,6 +56,8 @@ func preRun(_ *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		options.Sandbox.SetShareNet(true)
 	}
 
 	err = options.Sandbox.AddReadOnlyPath(args...)
