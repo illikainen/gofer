@@ -25,9 +25,10 @@ type Options struct {
 
 func Run(opts *Options) (err error) {
 	input := opts.Input
+	flags := []string{"-mod=readonly", "-trimpath", "-tags", "netgo,osusergo"}
 	g := gox.New(&gox.Options{
 		Dir:   input,
-		Flags: []string{"-mod=readonly", "-trimpath"},
+		Flags: flags,
 	})
 
 	if opts.Release {
@@ -49,7 +50,7 @@ func Run(opts *Options) (err error) {
 		input = tmp
 		g = gox.New(&gox.Options{
 			Dir:     tmp,
-			Flags:   []string{"-mod=readonly", "-trimpath", "-buildmode=pie", "-ldflags=-s -w -buildid="},
+			Flags:   append([]string{"-buildmode=pie", "-ldflags=-s -w -buildid="}, flags...),
 			Release: true,
 		})
 	}
