@@ -304,6 +304,7 @@ func (c *Info) validateURL() error {
 			`https://cloud\.google\.com/[a-zA-Z0-9/-]+`,
 			`https://dario\.cat/[a-zA-Z0-9/-]+`,
 			`https://github\.com/[a-zA-Z0-9/-]+`,
+			`https://go\.etcd\.io/[a-zA-Z0-9/-]+`,
 			`https://go\.googlesource\.com/[a-zA-Z0-9/-]+`,
 			`https://golang\.org/[a-zA-Z0-9/-]+`,
 			`https://gopkg\.in/[a-zA-Z0-9/-]+`,
