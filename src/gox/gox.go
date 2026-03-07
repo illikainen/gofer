@@ -48,9 +48,9 @@ func (g *Go) Generate(target string) error {
 	return err
 }
 
-func (g *Go) Build(output string, goos string, goarch string) error {
+func (g *Go) Build(packages []string, goos string, goarch string, output string) error {
 	_, err := process.Exec(&process.ExecOptions{
-		Command: append([]string{"go", "build", "-o", output}, g.Flags...),
+		Command: append([]string{"go", "build", "-o", output}, append(g.Flags, packages...)...),
 		Env: append(
 			g.env,
 			fmt.Sprintf("GOOS=%s", goos),

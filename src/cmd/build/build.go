@@ -22,7 +22,7 @@ var options struct {
 }
 
 var command = &cobra.Command{
-	Use:     "build",
+	Use:     "build [flags] [--] [packages...]",
 	Short:   "Build a project",
 	PreRunE: preRun,
 	RunE:    run,
@@ -89,7 +89,7 @@ func preRun(_ *cobra.Command, _ []string) error {
 	return options.Sandbox.Confine()
 }
 
-func run(cmd *cobra.Command, _ []string) error {
+func run(cmd *cobra.Command, args []string) error {
 	cmd.SilenceUsage = true
 
 	cwd, err := os.Getwd()
@@ -98,10 +98,11 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 
 	err = build.Run(&build.Options{
-		Input:   cwd,
-		Output:  options.output,
-		Targets: options.targets,
-		Release: options.release,
+		Packages: args,
+		Input:    cwd,
+		Output:   options.output,
+		Targets:  options.targets,
+		Release:  options.release,
 	})
 	if err != nil {
 		return err

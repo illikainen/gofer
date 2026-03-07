@@ -1,26 +1,24 @@
 package build
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
 
 	"github.com/illikainen/gofer/src/git"
 	"github.com/illikainen/gofer/src/gox"
-	"github.com/illikainen/gofer/src/mod"
 
 	"github.com/illikainen/go-utils/src/errorx"
 	"github.com/illikainen/go-utils/src/iofs"
-	"github.com/illikainen/go-utils/src/seq"
 	log "github.com/sirupsen/logrus"
 )
 
 type Options struct {
-	Input   string
-	Output  string
-	Targets []string
-	Release bool
+	Packages []string
+	Input    string
+	Output   string
+	Targets  []string
+	Release  bool
 }
 
 func Run(opts *Options) (err error) {
@@ -55,11 +53,6 @@ func Run(opts *Options) (err error) {
 		})
 	}
 
-	modfile, err := mod.ParseMod(filepath.Join(input, "go.mod"))
-	if err != nil {
-		return err
-	}
-
 	log.Info("generating ./...")
 	err = g.Generate("./...")
 	if err != nil {
@@ -71,21 +64,19 @@ func Run(opts *Options) (err error) {
 		return err
 	}
 
-	builds := []string{}
+	pkgs := strings.Join(opts.Packages, ", ")
+	if pkgs == "" {
+		pkgs = "."
+	}
+
 	for _, target := range opts.Targets {
 		parts := strings.Split(target, ":")
 		goos := strings.ReplaceAll(parts[0], "host", runtime.GOOS)
 		goarch := strings.ReplaceAll(parts[1], "host", runtime.GOARCH)
-		basename := fmt.Sprintf("%s-%s-%s", filepath.Base(modfile.Module.Mod.Path), goos, goarch)
-		dst := filepath.Join(output, basename)
+		dir := filepath.Join(output, goos+"-"+goarch) + string(filepath.Separator)
 
-		if seq.Contains(builds, dst) {
-			continue
-		}
-		builds = append(builds, dst)
-
-		log.Infof("building %s", dst)
-		err = g.Build(dst, goos, goarch)
+		log.Infof("building %s to %s", pkgs, dir)
+		err = g.Build(opts.Packages, goos, goarch, dir)
 		if err != nil {
 			return err
 		}
